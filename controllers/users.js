@@ -1,3 +1,4 @@
+const { ValidationError } = require('mongoose').Error;
 const User = require('../models/user');
 
 const getUsers = (req, res) => {
@@ -39,8 +40,12 @@ const createUser = (req, res) => {
     .then((user) => {
       res.status(201).send(user);
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+    .catch((error) => {
+      if (error instanceof ValidationError) {
+        res.status(404).send({ message: 'Ошибка валидации' });
+      } else {
+        res.status(500).send({ message: 'Ошибка на сервере' });
+      }
     });
 };
 
@@ -55,8 +60,12 @@ const updateProfile = (req, res) => {
       }
       res.status(200).send(data);
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+    .catch((error) => {
+      if (error instanceof ValidationError) {
+        res.status(404).send({ message: 'Ошибка валидации' });
+      } else {
+        res.status(500).send({ message: 'Ошибка на сервере' });
+      }
     });
 };
 
@@ -73,8 +82,12 @@ const updateAvatar = (req, res) => {
       }
       res.status(200).send(data);
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+    .catch((error) => {
+      if (error instanceof ValidationError) {
+        res.status(404).send({ message: 'Ошибка валидации' });
+      } else {
+        res.status(500).send({ message: 'Ошибка на сервере' });
+      }
     });
 };
 

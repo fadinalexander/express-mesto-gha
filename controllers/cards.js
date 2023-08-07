@@ -1,3 +1,4 @@
+const { ValidationError } = require('mongoose').Error;
 const Card = require('../models/card');
 
 const getCards = (req, res) => {
@@ -17,8 +18,12 @@ const createCard = (req, res) => {
     .then((card) => {
       res.status(201).send(card);
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+    .catch((error) => {
+      if (error instanceof ValidationError) {
+        res.status(404).send({ message: 'Ошибка валидации' });
+      } else {
+        res.status(500).send({ message: 'Ошибка на сервере' });
+      }
     });
 };
 
