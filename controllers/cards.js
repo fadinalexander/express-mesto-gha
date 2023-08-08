@@ -29,30 +29,30 @@ const createCard = (req, res) => {
 
 const likeCard = (req, res) => {
   const { _id } = req.user;
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: _id } },
-    { new: true },
-  )
+  Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: _id } }, { new: true })
     .then((card) => {
       res.status(200).send(card);
     })
-    .catch(() => {
+    .catch((error) => {
+      if (error.name === 'CastError') {
+        res.status(400).send({ message: 'Карточка не найдена' });
+        return;
+      }
       res.status(500).send({ message: 'Ошибка на сервере' });
     });
 };
 
 const dislikeCard = (req, res) => {
   const { _id } = req.user;
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $pull: { likes: _id } },
-    { new: true },
-  )
+  Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: _id } }, { new: true })
     .then((card) => {
       res.status(200).send(card);
     })
-    .catch(() => {
+    .catch((error) => {
+      if (error.name === 'CastError') {
+        res.status(400).send({ message: 'Карточка не найдена' });
+        return;
+      }
       res.status(500).send({ message: 'Ошибка на сервере' });
     });
 };
@@ -61,9 +61,17 @@ const deleteCard = (req, res) => {
   const { cardId } = req.params;
   Card.findByIdAndRemove(cardId)
     .then((card) => {
+      if (!card) {
+        res.status(404).send({ message: 'Карточка не найдена' });
+        return;
+      }
       res.status(200).send(card);
     })
-    .catch(() => {
+    .catch((error) => {
+      if (error.name === 'CastError') {
+        res.status(400).send({ message: 'Карточка не найдена' });
+        return;
+      }
       res.status(500).send({ message: 'Ошибка на сервере' });
     });
 };
