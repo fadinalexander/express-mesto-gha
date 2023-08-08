@@ -1,4 +1,4 @@
-const { ValidationError } = require('mongoose').Error;
+const { ValidationError, CastError } = require('mongoose').Error;
 const User = require('../models/user');
 
 const getUsers = (req, res) => {
@@ -9,9 +9,9 @@ const getUsers = (req, res) => {
     })
     .catch((error) => {
       if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Запрашиваемые пользователи не найдены' });
+        res.status(400).send({ message: 'Bad Request - Запрос не может быть обработан' });
       } else {
-        res.status(500).send({ message: 'Ошибка на сервере' });
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
     });
 };
@@ -25,11 +25,11 @@ const getUser = (req, res) => {
     })
     .catch((error) => {
       if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Запрашиваемый пользователь не найден' });
-      } else if (error instanceof ValidationError) {
-        res.status(400).send({ message: 'Ошибка валидации' });
+        res.status(404).send({ message: 'Not Found - Пользователь не найден на сервере' });
+      } else if (error.name === 'CastError') {
+        res.status(400).send({ message: 'Bad Request - Запрос не может быть обработан' });
       } else {
-        res.status(500).send({ message: 'Ошибка на сервере' });
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
     });
 };
@@ -42,9 +42,9 @@ const createUser = (req, res) => {
     })
     .catch((error) => {
       if (error instanceof ValidationError) {
-        res.status(400).send({ message: 'Ошибка валидации' });
+        res.status(400).send({ message: 'Bad Request - Запрос не может быть обработан' });
       } else {
-        res.status(500).send({ message: 'Ошибка на сервере' });
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
     });
 };
@@ -58,12 +58,12 @@ const updateProfile = (req, res) => {
       res.status(200).send(data);
     })
     .catch((error) => {
-      if (error instanceof ValidationError) {
-        res.status(400).send({ message: 'Ошибка валидации' });
+      if (error instanceof ValidationError || error instanceof CastError) {
+        res.status(400).send({ message: 'Bad Request - Запрос не может быть обработан' });
       } else if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Не удалось обновить ваш профиль' });
+        res.status(404).send({ message: 'Not Found - Пользователь не найден на сервере' });
       } else {
-        res.status(500).send({ message: 'Ошибка на сервере' });
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
     });
 };
@@ -77,12 +77,12 @@ const updateAvatar = (req, res) => {
       res.status(200).send(data);
     })
     .catch((error) => {
-      if (error instanceof ValidationError) {
-        res.status(400).send({ message: 'Ошибка валидации' });
+      if (error instanceof ValidationError || error instanceof CastError) {
+        res.status(400).send({ message: 'Bad Request - Запрос не может быть обработан' });
       } else if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Не удалось обновить аватар пользователя' });
+        res.status(404).send({ message: 'Not Found - Пользователь не найден на сервере' });
       } else {
-        res.status(500).send({ message: 'Ошибка на сервере' });
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
     });
 };

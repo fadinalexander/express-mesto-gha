@@ -1,4 +1,4 @@
-const { ValidationError } = require('mongoose').Error;
+const { ValidationError, CastError } = require('mongoose').Error;
 const Card = require('../models/card');
 
 const getCards = (req, res) => {
@@ -7,7 +7,7 @@ const getCards = (req, res) => {
       res.status(200).send(cards);
     })
     .catch(() => {
-      res.status(500).send({ message: 'Ошибка на сервере' });
+      res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
     });
 };
 
@@ -20,9 +20,9 @@ const createCard = (req, res) => {
     })
     .catch((error) => {
       if (error instanceof ValidationError) {
-        res.status(404).send({ message: 'Ошибка валидации' });
+        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
       } else {
-        res.status(500).send({ message: 'Ошибка на сервере' });
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
     });
 };
@@ -30,49 +30,54 @@ const createCard = (req, res) => {
 const likeCard = (req, res) => {
   const { _id } = req.user;
   Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: _id } }, { new: true })
+    .orFail(new Error('NotValidId'))
     .then((card) => {
       res.status(200).send(card);
     })
     .catch((error) => {
-      if (error.name === 'CastError') {
-        res.status(400).send({ message: 'Карточка не найдена' });
-        return;
+      if (error.message === 'NotValidId') {
+        res.status(404).send({ message: 'Not Found - Карточка не найдена на сервере' });
+      } else if (error instanceof CastError) {
+        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
+      } else {
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
-      res.status(500).send({ message: 'Ошибка на сервере' });
     });
 };
 
 const dislikeCard = (req, res) => {
   const { _id } = req.user;
   Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: _id } }, { new: true })
+    .orFail(new Error('NotValidId'))
     .then((card) => {
       res.status(200).send(card);
     })
     .catch((error) => {
-      if (error.name === 'CastError') {
-        res.status(400).send({ message: 'Карточка не найдена' });
-        return;
+      if (error.message === 'NotValidId') {
+        res.status(404).send({ message: 'Not Found - Карточка не найдена на сервере' });
+      } else if (error instanceof CastError) {
+        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
+      } else {
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
-      res.status(500).send({ message: 'Ошибка на сервере' });
     });
 };
 
 const deleteCard = (req, res) => {
   const { cardId } = req.params;
   Card.findByIdAndRemove(cardId)
+    .orFail(new Error('NotValidId'))
     .then((card) => {
-      if (!card) {
-        res.status(404).send({ message: 'Карточка не найдена' });
-        return;
-      }
       res.status(200).send(card);
     })
     .catch((error) => {
-      if (error.name === 'CastError') {
-        res.status(400).send({ message: 'Карточка не найдена' });
-        return;
+      if (error.message === 'NotValidId') {
+        res.status(404).send({ message: 'Not Found - Карточка не найдена на сервере' });
+      } else if (error instanceof CastError) {
+        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
+      } else {
+        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
       }
-      res.status(500).send({ message: 'Ошибка на сервере' });
     });
 };
 
