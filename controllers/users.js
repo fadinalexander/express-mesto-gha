@@ -58,7 +58,9 @@ const updateProfile = (req, res) => {
       res.status(200).send(data);
     })
     .catch((error) => {
-      if (error instanceof ValidationError || error instanceof CastError) {
+      if (error instanceof ValidationError) {
+        res.status(400).send({ message: 'Bad Request - Запрос не может быть обработан' });
+      } else if (error instanceof CastError) {
         res.status(400).send({ message: 'Bad Request - Запрос не может быть обработан' });
       } else if (error.message === 'NotValidId') {
         res.status(404).send({ message: 'Not Found - Пользователь не найден на сервере' });
