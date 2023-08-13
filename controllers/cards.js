@@ -1,17 +1,22 @@
 const { ValidationError, CastError } = require('mongoose').Error;
 const Card = require('../models/card');
 
-const getCards = (req, res) => {
+const BadRequestError = require('../errors/BadRequestError');
+const NotFoundError = require('../errors/NotFoundError');
+const ForbiddenError = require('../errors/ForbiddenError');
+const UnauthorizedError = require('../errors/UnauthorizedError');
+
+const getCards = (req, res, next) => {
   Card.find({})
     .then((cards) => {
       res.status(200).send(cards);
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
+    .catch((error) => {
+      next(error);
     });
 };
 
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
   const { _id } = req.user;
   Card.create({ name, link, owner: _id })
@@ -20,14 +25,14 @@ const createCard = (req, res) => {
     })
     .catch((error) => {
       if (error instanceof ValidationError) {
-        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
+        next(new BadRequestError('Bad Request - Данные переданы не верно'));
       } else {
-        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
+        next(error);
       }
     });
 };
 
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   const { _id } = req.user;
   Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: _id } }, { new: true })
     .orFail(new Error('NotValidId'))
@@ -36,16 +41,16 @@ const likeCard = (req, res) => {
     })
     .catch((error) => {
       if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Not Found - Карточка не найдена на сервере' });
+        next(new NotFoundError('Not Found - Карточка не найдена на сервере'));
       } else if (error instanceof CastError) {
-        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
+        next(new BadRequestError('Bad Request - Данные переданы не верно'));
       } else {
-        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
+        next(error);
       }
     });
 };
 
-const dislikeCard = (req, res) => {
+const dislikeCard = (req, res, next) => {
   const { _id } = req.user;
   Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: _id } }, { new: true })
     .orFail(new Error('NotValidId'))
@@ -54,29 +59,40 @@ const dislikeCard = (req, res) => {
     })
     .catch((error) => {
       if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Not Found - Карточка не найдена на сервере' });
+        next(new NotFoundError('Not Found - Карточка не найдена на сервере'));
       } else if (error instanceof CastError) {
-        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
+        next(new BadRequestError('Bad Request - Данные переданы не верно'));
       } else {
-        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
+        next(error);
       }
     });
 };
 
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   const { cardId } = req.params;
-  Card.findByIdAndRemove(cardId)
-    .orFail(new Error('NotValidId'))
+  const { _id } = req.user;
+  Card.findById(cardId)
     .then((card) => {
-      res.status(200).send(card);
+      if (!card) {
+        throw new Error('NotValidId');
+      }
+      if (card.owner.toString() !== _id) {
+        throw new UnauthorizedError('Невозможно удалить карточку другого пользователя');
+      }
+      return Card.findByIdAndRemove(cardId);
+    })
+    .then((removedCard) => {
+      res.status(200).send(removedCard);
     })
     .catch((error) => {
       if (error.message === 'NotValidId') {
-        res.status(404).send({ message: 'Not Found - Карточка не найдена на сервере' });
+        next(new NotFoundError('Not Found - Карточка не найдена на сервере'));
       } else if (error instanceof CastError) {
-        res.status(400).send({ message: 'Bad Request - Данные переданы не верно' });
+        next(new BadRequestError('Bad Request - Данные переданы не верно'));
+      } else if (error instanceof 'UnauthorizedError') {
+        next(new ForbiddenError('Forbidden - Невозможно удалить карточку другого пользователя'));
       } else {
-        res.status(500).send({ message: 'Internal Server Error - Ошибка на сервере' });
+        next(error);
       }
     });
 };
