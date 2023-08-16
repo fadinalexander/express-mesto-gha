@@ -19,10 +19,34 @@ router.post(
   createCard,
 );
 
-router.put('/:cardId/likes', likeCard);
+router.put(
+  '/:cardId/likes',
+  celebrate({
+    params: Joi.object().keys({
+      userId: Joi.string().required.length(24).hex(),
+    }),
+  }),
+  likeCard,
+);
 
-router.delete('/:cardId/likes', dislikeCard);
+router.delete(
+  '/:cardId/likes',
+  celebrate({
+    params: Joi.object().keys({
+      userId: Joi.string().required.length(24).hex(),
+    }),
+  }),
+  dislikeCard,
+);
 
-router.delete('/:cardId', deleteCard);
+router.delete(
+  '/:cardId',
+  celebrate({
+    params: Joi.object().keys({
+      userId: Joi.string().required.length(24).hex(),
+    }),
+  }),
+  deleteCard,
+);
 
 module.exports = router;

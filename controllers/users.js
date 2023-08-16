@@ -1,4 +1,4 @@
-const { ValidationError, CastError } = require('mongoose').Error;
+const { ValidationError } = require('mongoose').Error;
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -8,7 +8,7 @@ const User = require('../models/user');
 const BadRequestError = require('../errors/BadRequestError');
 const NotFoundError = require('../errors/NotFoundError');
 const ConflictError = require('../errors/ConflictError');
-const UnauthorizedError = require('../errors/UnauthorizedError');
+const InternalServerError = require('../errors/InternalServerError');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -17,25 +17,23 @@ const getUsers = (req, res, next) => {
     .then((users) => {
       res.status(200).send(users);
     })
-    .catch((error) => {
-      next(error);
+    .catch(() => {
+      next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
     });
 };
 
 const getUser = (req, res, next) => {
   const { userId } = req.params;
   User.findById(userId)
-    .orFail(new Error('NotValidId'))
+    .orFail(new NotFoundError('Пользователь не найден'))
     .then((user) => {
       res.status(200).send(user);
     })
     .catch((error) => {
-      if (error.message === 'NotValidId') {
-        next(new NotFoundError('Not Found - Пользователь не найден на сервере'));
-      } else if (error.name === 'CastError') {
+      if (error.name === 'CastError') {
         next(new BadRequestError('Bad Request - Запрос не может быть обработан'));
       } else {
-        next(error);
+        next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
       }
     });
 };
@@ -43,18 +41,12 @@ const getUser = (req, res, next) => {
 const getMyUser = (req, res, next) => {
   const { _id } = req.user;
   User.findById(_id)
-    .orFail(new Error('NotValidId'))
+    .orFail(new NotFoundError('Пользователь не найден'))
     .then((user) => {
       res.status(200).send(user);
     })
-    .catch((error) => {
-      if (error.message === 'NotValidId') {
-        next(new NotFoundError('Not Found - Пользователь не найден на сервере'));
-      } else if (error.name === 'CastError') {
-        next(new BadRequestError('Bad Request - Запрос не может быть обработан'));
-      } else {
-        next(error);
-      }
+    .catch(() => {
+      next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
     });
 };
 
@@ -86,7 +78,7 @@ const createUser = (req, res, next) => {
       } else if (error.code === 11000) {
         next(new ConflictError('Conflict - Пользователь с такими данными уже существует'));
       } else {
-        next(error);
+        next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
       }
     });
 };
@@ -96,17 +88,17 @@ const login = (req, res, next) => {
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
-      res.setHeader('set-cookie', [`jwt=${token}; Secure`]);
       res
         .cookie('jwt', token, {
-          maxAge: 3600,
+          maxAge: 36000000,
           httpOnly: true,
+          sameSite: true,
         })
         .status(200)
         .send({ message: 'Пользователь успешнно авторизован' });
     })
     .catch(() => {
-      next(new UnauthorizedError('Присланный токен не корректен'));
+      next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
     });
 };
 
@@ -123,12 +115,12 @@ const updateProfile = (req, res, next) => {
       res.status(200).send(data);
     })
     .catch((error) => {
-      if (error instanceof ValidationError || error instanceof CastError) {
+      if (error instanceof ValidationError) {
         next(new BadRequestError('Bad Request - Запрос не может быть обработан'));
       } else if (error.message === 'NotValidId') {
         next(new NotFoundError('Not Found - Пользователь не найден на сервере'));
       } else {
-        next(error);
+        next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
       }
     });
 };
@@ -137,17 +129,15 @@ const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
   const { _id } = req.user;
   User.findByIdAndUpdate({ _id }, { avatar }, { new: true, runValidators: true })
-    .orFail(new Error('NotValidId'))
+    .orFail(new NotFoundError('Пользователь не найден'))
     .then((data) => {
       res.status(200).send(data);
     })
     .catch((error) => {
-      if (error instanceof ValidationError || error instanceof CastError) {
+      if (error instanceof ValidationError) {
         next(new BadRequestError('Bad Request - Запрос не может быть обработан'));
-      } else if (error.message === 'NotValidId') {
-        next(new NotFoundError('Not Found - Пользователь не найден на сервере'));
       } else {
-        next(error);
+        next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
       }
     });
 };

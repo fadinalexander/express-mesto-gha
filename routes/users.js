@@ -7,8 +7,17 @@ const URLreg = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)[a-zA-Z0-9-]+\.[a-z]{2,6}(:[0-9]
 const { getUsers, getUser, getMyUser, updateProfile, updateAvatar } = require('../controllers/users');
 
 router.get('/', getUsers);
-router.get('/:userId', getUser);
 router.get('/me', getMyUser);
+
+router.get(
+  '/:userId',
+  celebrate({
+    params: Joi.object().keys({
+      userId: Joi.string().required.length(24).hex(),
+    }),
+  }),
+  getUser,
+);
 
 router.patch(
   '/me',

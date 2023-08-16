@@ -1,8 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const helmet = require('helmet');
+const { errors } = require('celebrate');
 
-const InternalServerError = require('./errors/InternalServerError');
+const auth = require('./middlewares/auth');
 
 const cardsRouter = require('./routes/cards');
 const usersRouter = require('./routes/users');
@@ -16,12 +18,13 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/cards', cardsRouter);
-app.use('/users', usersRouter);
+app.use('/cards', auth, cardsRouter);
+app.use('/users', auth, usersRouter);
 app.use('/users', authRouter);
+app.use(errors());
 
 app.use((err, req, res, next) => {
-  next(new InternalServerError('Ошибка на сервере'));
+  res.send({ message: err.message });
 });
 
 mongoose.connect(DB_URL);
