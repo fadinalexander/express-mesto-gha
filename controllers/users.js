@@ -97,8 +97,8 @@ const login = (req, res, next) => {
         .status(200)
         .send({ message: 'Пользователь успешнно авторизован' });
     })
-    .catch(() => {
-      next();
+    .catch((error) => {
+      next(error);
     });
 };
 

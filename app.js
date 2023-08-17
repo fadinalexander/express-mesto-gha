@@ -33,10 +33,11 @@ app.use('/*', (req, res, next) => {
 app.use(errors());
 
 app.use((err, req, res, next) => {
+  const { statusCode = 500 } = err;
   if (err instanceof NotFoundError) {
     res.status(404).send({ message: err.message });
   } else {
-    res.status(500).send({ message: 'Internal server Error - на сервере произошла ошибка' });
+    res.status(statusCode).send({ message: err.message });
   }
 });
 
