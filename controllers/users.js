@@ -13,18 +13,17 @@ const InternalServerError = require('../errors/InternalServerError');
 const { NODE_ENV, JWT_SECRET } = process.env;
 
 const getUsers = (req, res, next) => {
-  User.find({})
-    .then((users) => {
-      res.status(200).send(users);
-    })
-    .catch(() => {
-      next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
-    });
+  return User.find({}).then((users) => {
+    res.status(200).send(users);
+  });
+  // .catch((error) => {
+  //   next(error);
+  // });
 };
 
 const getUser = (req, res, next) => {
   const { userId } = req.params;
-  User.findById(userId)
+  return User.findById(userId)
     .orFail(new NotFoundError('Пользователь не найден'))
     .then((user) => {
       res.status(200).send(user);
@@ -33,20 +32,20 @@ const getUser = (req, res, next) => {
       if (error.name === 'CastError') {
         next(new BadRequestError('Bad Request - Запрос не может быть обработан'));
       } else {
-        next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
+        next(error);
       }
     });
 };
 
 const getMyUser = (req, res, next) => {
   const { _id } = req.user;
-  User.findById(_id)
+  return User.findById(_id)
     .orFail(new NotFoundError('Пользователь не найден'))
     .then((user) => {
       res.status(200).send(user);
     })
-    .catch(() => {
-      next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
+    .catch((error) => {
+      next(error);
     });
 };
 
@@ -56,7 +55,7 @@ const createUser = (req, res, next) => {
   bcrypt
     .hash(password, 10)
     .then((hash) => {
-      User.create({
+      return User.create({
         name,
         about,
         avatar,
@@ -78,14 +77,15 @@ const createUser = (req, res, next) => {
       } else if (error.code === 11000) {
         next(new ConflictError('Conflict - Пользователь с такими данными уже существует'));
       } else {
-        next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
+        // next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
+        next(error);
       }
     });
 };
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
-  return User.findUserByCredentials(email, password)
+  return User.findUserByCredentials({ email, password })
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret', { expiresIn: '7d' });
       res
@@ -98,7 +98,7 @@ const login = (req, res, next) => {
         .send({ message: 'Пользователь успешнно авторизован' });
     })
     .catch(() => {
-      next(new InternalServerError('Internal server Error - на сервере произошла ошибка'));
+      next();
     });
 };
 
