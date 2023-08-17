@@ -5,7 +5,7 @@ const cookies = require('cookie-parser');
 const helmet = require('helmet');
 const { errors } = require('celebrate');
 
-const InternalServerError = require('./errors/InternalServerError');
+const NotFoundError = require('./errors/NotFoundError');
 
 const auth = require('./middlewares/auth');
 
@@ -22,13 +22,22 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookies());
+
 app.use('/cards', auth, cardsRouter);
 app.use('/users', auth, usersRouter);
 app.use('/', authRouter);
+
+app.use('/*', (req, res, next) => {
+  next(new NotFoundError('Not Found - Страница не найдена'));
+});
 app.use(errors());
 
 app.use((err, req, res, next) => {
-  return res.status(500).send({ message: 'Internal server Error - на сервере произошла ошибка' });
+  if (err instanceof NotFoundError) {
+    res.status(404).send({ message: err.message });
+  } else {
+    res.status(500).send({ message: 'Internal server Error - на сервере произошла ошибка' });
+  }
 });
 
 mongoose.connect(DB_URL);

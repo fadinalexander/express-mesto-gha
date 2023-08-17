@@ -2,20 +2,18 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcrypt');
 
-const NotFoundError = require('../errors/NotFoundError');
+const UnauthorizedError = require('../errors/UnauthorizedError');
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
       minlength: [2, 'Минимальная длина поля"name" - 2 символа'],
       maxlength: [30, 'Максимальная длина поля "name" - 30 символов'],
       default: 'Alexander',
     },
     about: {
       type: String,
-      required: true,
       minlength: [2, 'Минимальная длина поля"about" - 2 символа'],
       maxlength: [30, 'Минимальная длина поля"about" - 30 символов'],
       default: 'JS developer',
@@ -26,7 +24,6 @@ const userSchema = new mongoose.Schema(
         validator: (v) => validator.isURL(v),
         message: 'Введен некорректный URL',
       },
-      required: true,
       default: 'https://images.unsplash.com/photo-1682685797769-481b48222adf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
     },
     email: {
@@ -52,11 +49,11 @@ userSchema.statics.findUserByCredentials = function findUserByCredentials({ emai
     .select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(new NotFoundError('Неправильно введены почта или пароль'));
+        return Promise.reject(new UnauthorizedError('Неправильно введены почта или пароль'));
       }
       return bcrypt.compare(password, user.password).then((matched) => {
         if (!matched) {
-          return Promise.reject(new NotFoundError('Неправильно введены почта или пароль'));
+          return Promise.reject(new UnauthorizedError('Неправильно введены почта или пароль'));
         }
         return user;
       });
