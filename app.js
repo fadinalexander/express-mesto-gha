@@ -34,10 +34,11 @@ app.use(errors());
 
 app.use((err, req, res, next) => {
   const { statusCode = 500 } = err;
+  console.error(err);
   if (err instanceof NotFoundError) {
     res.status(404).send({ message: err.message });
   } else {
-    res.status(statusCode).send({ message: err.message });
+    res.status(statusCode).send({ message: 'На сервере произошла ошибка' });
   }
 });
 
